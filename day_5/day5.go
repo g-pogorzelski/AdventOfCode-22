@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+type Crane struct {
+	Qty  int
+	From int
+	To   int
+	Mat  [][]byte
+}
+
 const ALPHA = "abcdefghijklmnopqrstuv"
 
 func main() {
@@ -19,12 +26,13 @@ func main() {
 	}
 	defer f.Close()
 
-	crates := [][]byte{}
+	otpt1, otpt2 := Crane{}, Crane{}
 
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		txt := s.Text()
-		crates = append(crates, []byte(txt))
+		otpt1.Mat = append(otpt1.Mat, []byte(txt))
+		otpt2.Mat = append(otpt2.Mat, []byte(txt))
 	}
 
 	f, err = os.Open("input.txt")
@@ -33,16 +41,9 @@ func main() {
 	}
 	defer f.Close()
 
-	type Mane struct {
-		Qty  int
-		From int
-		To   int
-	}
-
 	s = bufio.NewScanner(f)
 	for s.Scan() {
 		//Get order
-		m := Mane{}
 		txt := s.Text()
 		arr := strings.Split(txt, " ")
 
@@ -50,30 +51,56 @@ func main() {
 			if _, err := strconv.Atoi(j); err == nil {
 				switch i {
 				case 1:
-					m.Qty, err = strconv.Atoi(j)
+					otpt1.Qty, _ = strconv.Atoi(j)
+					otpt2.Qty, _ = strconv.Atoi(j)
 				case 3:
-					m.From, err = strconv.Atoi(j)
-					m.From--
+					otpt1.From, _ = strconv.Atoi(j)
+					otpt2.From, _ = strconv.Atoi(j)
+					otpt1.From--
+					otpt2.From--
 				case 5:
-					m.To, err = strconv.Atoi(j)
-					m.To--
+					otpt1.To, _ = strconv.Atoi(j)
+					otpt2.To, _ = strconv.Atoi(j)
+					otpt1.To--
+					otpt2.To--
 				}
 			}
 		}
-		//Move the crates
-		l := len(crates[m.From])
-		x := l - m.Qty
-		load := []byte{}
-
-		for i := l - 1; i >= x && i >= 0; i-- {
-			load = append(load, crates[m.From][i])
-			crates[m.From] = crates[m.From][:i]
-		}
-		crates[m.To] = append(crates[m.To], load...)
-		fmt.Println(txt)
-		for n, i := range crates {
-			fmt.Println(n+1, " ", string(i), " ", len(i))
-		}
+		otpt1.pop()
+		otpt2.appnd()
 	}
+
+	fmt.Println("\n --- Task #1 ---")
+	fmt.Println()
+	for n, i := range otpt1.Mat {
+		fmt.Println(n+1, " ", string(i), " ", len(i))
+	}
+
+	fmt.Println("\n --- Task #2 ---")
+	fmt.Println()
+	for n, i := range otpt2.Mat {
+		fmt.Println(n+1, " ", string(i), " ", len(i))
+	}
+}
+
+func (c *Crane) pop() {
+	//Move the crates using push/pop mechanism
+	l := len(c.Mat[c.From])
+	x := l - c.Qty
+	load := []byte{}
+
+	for i := l - 1; i >= x && i >= 0; i-- {
+		load = append(load, c.Mat[c.From][i])
+		c.Mat[c.From] = c.Mat[c.From][:i]
+	}
+	c.Mat[c.To] = append(c.Mat[c.To], load...)
+}
+func (c *Crane) appnd() {
+	//Move the crates by reattaching subarrays
+	l := len(c.Mat[c.From])
+	x := l - c.Qty
+	load := c.Mat[c.From][x:]
+	c.Mat[c.To] = append(c.Mat[c.To], load...)
+	c.Mat[c.From] = append(c.Mat[c.From][:x])
 
 }

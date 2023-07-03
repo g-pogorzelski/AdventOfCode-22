@@ -12,7 +12,7 @@ import (
 func main() {
 
 	// Read the text file containing the list
-	f, err := os.Open("list.txt")
+	f, err := os.Open("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,7 +36,8 @@ func main() {
 	}
 	start := time.Now()
 	x := Sort(elfs)
-	fmt.Println(x[1] + x[2] + x[3])
+	fmt.Println("Task #1: ", x[0])
+	fmt.Println("Task #2: ", x[0]+x[1]+x[2])
 	fmt.Println(time.Since(start))
 }
 
@@ -56,10 +57,7 @@ func Sort(arr []int) []int {
 		b := Sort(arr[n:])
 		i, j := 0, 0
 		for i < len(a) && j < len(b) {
-			if a[i] < b[j] {
-				otpt = append(otpt, b[j])
-				j++
-			} else if i <= j {
+			if i <= j && a[i] > b[j] {
 				otpt = append(otpt, a[i])
 				i++
 			} else {
