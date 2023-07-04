@@ -5,25 +5,26 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
 const LIMIT = 100000
 
 type Dir struct {
-	Size     int
-	Files    []int
-	Embedded bool
+	Name    string
+	Size    int
+	PrevDir *Dir
+	SubDir  []Dir
 }
 
 func main() {
-	f, err := os.Open("input.txt")
+	f, err := os.Open("testInput.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	repo := [][]Dir{}
-	depth, width := 0, 0
+	repo, head := Dir{}, Dir{}
 
 	s := bufio.NewScanner(f)
 	for s.Scan() {
@@ -32,27 +33,31 @@ func main() {
 		case "cd":
 			switch txt[2] {
 			case "/":
-				depth = 0
-				width++
+				repo = Dir{PrevDir: nil, Name: txt[2]}
+				head = repo
 			case "..":
-				depth--
-				width = len(Dir[depth])
+				if head.Name != "/" {
+					head = *head.PrevDir
+				}
 			default:
-				depth++
+				if head.PrevDir != nil {
+					head = Dir{PrevDir: &repo.SubDir[len(repo.SubDir)-1], Name: txt[2]}
+					head.PrevDir.SubDir = append(head.PrevDir.SubDir, head)
+				} else {
+					head = Dir{PrevDir: &repo, Name: txt[2]}
+					repo.SubDir = append(repo.SubDir, head)
+				}
 			}
 		case "ls":
 		default:
-			switch txt[0] {
+			switch n, err := strconv.Atoi(txt[0]); err {
+			case nil:
+				head.Size += n
+			default:
 
 			}
-
 		}
 	}
 	sum := 0
-	for _, i := range arr {
-		if i.Size <= LIMIT {
-			sum += i.Size
-		}
-	}
 	fmt.Println(sum)
 }
