@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -31,6 +32,7 @@ func (d *Dir) weight() {
 }
 
 func main() {
+	start := time.Now()
 	f, err := os.Open("input.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -74,6 +76,7 @@ func main() {
 	arr := findFit(repo, req)
 	args := Sort(arr)
 	fmt.Println("Task #2: ", args[len(args)-1])
+	fmt.Println(time.Since(start))
 }
 
 func getAll(d Dir) (size int) {
@@ -117,7 +120,7 @@ func Sort(arr []int) []int {
 		b := Sort(arr[n:])
 		i, j := 0, 0
 		for i < len(a) && j < len(b) {
-			if i <= j && a[i] > b[j] {
+			if a[i] > b[j] {
 				otpt = append(otpt, a[i])
 				i++
 			} else {
@@ -125,7 +128,7 @@ func Sort(arr []int) []int {
 				j++
 			}
 		}
-		if i > j {
+		if i > j && len(b) > j {
 			otpt = append(otpt, Sort(b[j:])...)
 		} else {
 			otpt = append(otpt, Sort(a[i:])...)
