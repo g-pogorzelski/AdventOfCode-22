@@ -3,15 +3,21 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
-
-	"strconv"
-	"strings"
 	"time"
 )
 
-const AMM = 10
+const AMM = 9
+
+/* ______               __
+  / __/ /_______ ______/ /____
+ _\ \/ __/ __/ // / __/ __(_-<
+/___/\__/_/  \_,_/\__/\__/___/
+*/
+
+var Dir = map[rune]Coord{
+	'U': {0, -1}, 'D': {0, 1}, 'L': {-1, 0}, 'R': {1, 0},
+}
 
 type Coord struct {
 	x int
@@ -19,115 +25,106 @@ type Coord struct {
 }
 
 type Knot struct {
-	Tail  bool
-	Prev  *Knot
-	Coord Coord
-}
-
-var Dir = map[string]Coord{
-	"R": {
-		x: 1,
-		y: 0,
-	},
-	"L": {
-		x: -1,
-		y: 0,
-	},
-	"U": {
-		x: 0,
-		y: 1,
-	},
-	"D": {
-		x: 0,
-		y: -1,
-	},
+	Index      int
+	Tail       bool
+	Prev, Next *Knot //Prev == towards Tail, Next == Towards Head
+	Coord      Coord
 }
 
 func main() {
 	start := time.Now()
-	f, err := os.Open("testInput.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	f, _ := os.Open("input.txt")
 	s := bufio.NewScanner(f)
-	rope := Knot{}
+	dict := map[Coord]struct{}{}
+	rope := tie()
+	for s.Scan() {
+		txt := string(s.Text())
+		var dir rune
+		var amm int
+		fmt.Sscanf(txt, "%c %d", &dir, &amm)
+		for i := 0; i < amm; i++ {
+			rope.Coord = rope.Add(Dir[dir])
+			dict = rope.Prev.Move(dict, amm, dir)
+		}
+
+	}
+	fmt.Println(time.Since(start))
+	fmt.Println("Task 2: ", len(dict))
+}
+
+/* __ __          __    ___              __  _
+  / //_/__  ___  / /_  / _/_ _____  ____/ /_(_)__  ___  ___
+ / ,< / _ \/ _ \/ __/ / _/ // / _ \/ __/ __/ / _ \/ _ \(_-<
+/_/|_/_//_/\___/\__/ /_/ \_,_/_//_/\__/\__/_/\___/_//_/___/
+*/
+
+func tie() *Knot {
 	head := &Knot{
-		Tail: true,
+		Index: AMM,
+		Tail:  true,
 		Coord: Coord{
 			x: 0,
 			y: 0,
 		},
 		Prev: nil}
 
-	for i := 1; i < AMM; i++ {
+	for i := 1; i <= AMM; i++ {
 		n := &Knot{
+			Index: AMM - i,
 			Coord: Coord{
 				x: 0,
 				y: 0,
 			},
 			Prev: head}
+		head.Next = n
 		head = n
 	}
-	rope = *head
-	head = &rope
-	dict := make(map[Coord]bool)
-	for s.Scan() {
-		txt := strings.Split(s.Text(), " ")
-		n, err := strconv.Atoi(txt[1])
-		if err != nil {
-			log.Fatal(err)
-		}
-		dir := Dir[txt[0]]
-		for i := 0; i < n; i++ {
-			rope.Coord.x += dir.x
-			rope.Coord.y += dir.y
-		}
-		for head.Prev != nil {
-			if head.Prev.Tail {
-				dict[head.Prev.Coord] = true
-			}
-			for !head.Touching() {
-				arg := head.Move(txt[0], dir)
-				if head.Prev.Tail {
-					dict[head.Prev.Coord] = arg
-				}
-			}
-			head = head.Prev
-		}
+	return head
+}
 
-		head = &rope
+func (k *Knot) Move(dict map[Coord]struct{}, amm int, dir rune) map[Coord]struct{} {
+	if dist := k.Next.Sub(k.Coord); Abs(dist.x) > 1 || Abs(dist.y) > 1 {
+		k.Coord = k.Add(Coord{Zwrt(dist.x), Zwrt(dist.y)})
 	}
-	fmt.Println(time.Since(start))
-	fmt.Println("Task 2: ", len(dict))
+	if k.Prev == nil {
+		dict[k.Coord] = struct{}{}
+	} else {
+		dict = k.Prev.Move(dict, amm, dir)
+	}
+	return dict
 }
 
 func (k Knot) Touching() bool {
-	arg := k.Prev
-	if k.Coord.x > arg.Coord.x+1 || k.Coord.x < arg.Coord.x-1 {
-		return false
-	} else if k.Coord.y > arg.Coord.y+1 || k.Coord.y < arg.Coord.y-1 {
+	arg := k.Sub(k.Coord)
+	if Abs(arg.x) > 1 || Abs(arg.y) > 1 {
 		return false
 	}
 	return true
 }
 
-func (k *Knot) Move(txt string, arg Coord) bool {
-	if txt == "U" && k.Coord.x != k.Prev.Coord.x {
-		k.Prev.Coord.x = k.Coord.x
-		k.Prev.Coord.y += arg.y
-	} else if txt == "D" && k.Coord.x != k.Prev.Coord.x {
-		k.Prev.Coord.x = k.Coord.x
-		k.Prev.Coord.y += arg.y
-	} else if txt == "L" && k.Coord.y != k.Prev.Coord.y {
-		k.Prev.Coord.x += arg.x
-		k.Prev.Coord.y = k.Coord.y
-	} else if txt == "R" && k.Coord.y != k.Prev.Coord.y {
-		k.Prev.Coord.x += arg.x
-		k.Prev.Coord.y = k.Coord.y
-	} else {
-		k.Prev.Coord.x += arg.x
-		k.Prev.Coord.y += arg.y
+func (k Knot) Add(arg Coord) Coord {
+	k.Coord.x += arg.x
+	k.Coord.y += arg.y
+	return k.Coord
+}
+
+func (k Knot) Sub(arg Coord) Coord {
+	k.Coord.x -= arg.x
+	k.Coord.y -= arg.y
+	return k.Coord
+}
+
+func Abs(arg int) int {
+	if arg < 0 {
+		return -arg
 	}
-	return true
+	return arg
+}
+func Zwrt(arg int) int {
+	if arg < 0 {
+		return -1
+	} else if arg > 0 {
+		return 1
+	}
+	return 0
 }
